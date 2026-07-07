@@ -17,23 +17,33 @@ if os.path.exists(ema_db_path):
     with open(ema_db_path, 'r', encoding='utf-8') as f:
         EMA_DB = json.load(f)
 
-def lookup_ema3_from_db(prices_3days):
-    """ตรวจว่าราคา 3 วันตรงกับลำดับในฐานข้อมูลหรือไม่
-    ถ้าตรง ดึงค่า EMA3 ของวันสุดท้ายมาเลย
+def lookup_ema_from_db(prices_list, ema_type='ema3'):
+    """ตรวจว่าราคาที่กรอกตรงกับลำดับในฐานข้อมูลหรือไม่
+    ถ้าตรง ดึงค่า EMA ของวันสุดท้ายมาเลย
+    
+    ema_type: 'ema3', 'ema5', 'ema10'
     """
-    if len(EMA_DB) < 3:
+    n = len(prices_list)
+    if len(EMA_DB) < n or n < 2:
         return None
     
-    p1, p2, p3 = int(prices_3days[0]), int(prices_3days[1]), int(prices_3days[2])
+    prices_int = [int(p) for p in prices_list]
     
-    for i in range(len(EMA_DB) - 2):
-        if (EMA_DB[i]['price'] == p1 and 
-            EMA_DB[i+1]['price'] == p2 and 
-            EMA_DB[i+2]['price'] == p3):
-            # พบ! ดึง EMA3 ของวันสุดท้าย
-            return EMA_DB[i+2]['ema3']
+    for i in range(len(EMA_DB) - n + 1):
+        match = True
+        for j in range(n):
+            if EMA_DB[i+j]['price'] != prices_int[j]:
+                match = False
+                break
+        if match:
+            last_record = EMA_DB[i + n - 1]
+            return last_record.get(ema_type)
     
     return None
+
+def lookup_ema3_from_db(prices_3days):
+    """Backward compatible wrapper"""
+    return lookup_ema_from_db(prices_3days, 'ema3')
 
 def calculate_ema3_manual(prices_3days):
     """คำนวณ EMA3 เองกรณีไม่มีในฐานข้อมูล
@@ -116,10 +126,20 @@ def predict():
     
     if len(prices) >= 5:
         results['sma5'] = round(predict_next_price(prices, 5), 2)
-        results['ema5'] = round(predict_next_price_ema(prices, 5), 2)
+        # EMA5: ลองดึงจาก DB ก่อน
+        db_ema5 = lookup_ema_from_db(prices[-5:], 'ema5')
+        if db_ema5 is not None:
+            results['ema5'] = db_ema5
+        else:
+            results['ema5'] = round(predict_next_price_ema(prices, 5), 2)
     if len(prices) >= 10:
         results['sma10'] = round(predict_next_price(prices, 10), 2)
-        results['ema10'] = round(predict_next_price_ema(prices, 10), 2)
+        # EMA10: ลองดึงจาก DB ก่อน
+        db_ema10 = lookup_ema_from_db(prices[-10:], 'ema10')
+        if db_ema10 is not None:
+            results['ema10'] = db_ema10
+        else:
+            results['ema10'] = round(predict_next_price_ema(prices, 10), 2)
     
     if not results:
         return jsonify({'error': 'ต้องมีข้อมูลอย่างน้อย 3 วัน'}), 400
