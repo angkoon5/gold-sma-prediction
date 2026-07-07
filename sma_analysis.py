@@ -139,15 +139,35 @@ def predict_next_price(prices_list, window):
 
 def predict_next_price_ema(prices_list, span):
     """ทำนายราคาวันถัดไปด้วย EMA
-    ใช้ค่า EMA ล่าสุดเป็นราคาทำนาย
-    EMA(next) = Price(today) * alpha + EMA(yesterday) * (1-alpha)
+    
+    วิธี: คำนวณ EMA จากข้อมูลทั้งหมด แล้วใช้ค่า EMA สุดท้ายเป็นราคาทำนาย
+    เพราะ EMA(t) = Price(t) * alpha + EMA(t-1) * (1-alpha)
+    ค่า EMA ล่าสุดจึงเป็นการถ่วงน้ำหนักราคาทุกวันอยู่แล้ว (วันล่าสุดหนักสุด)
+    
+    ถ้าข้อมูลมีพอดี span วัน EMA จะ = SMA (เพราะเป็นค่าเริ่มต้น)
+    ดังนั้นต้องมีข้อมูลมากกว่า span จึงจะเห็นความต่าง
     """
     if len(prices_list) < span:
         return None
+    
+    # ถ้ามีข้อมูลมากกว่า span ใช้ EMA ปกติ
     series = pd.Series(prices_list)
-    ema = calculate_ema(series, span)
-    # หาค่า EMA ล่าสุดที่ไม่เป็น NaN
-    valid = ema.dropna()
-    if len(valid) == 0:
-        return None
-    return float(valid.iloc[-1])
+    alpha = 2.0 / (span + 1)
+    
+    # คำนวณ EMA: เริ่มจาก SMA ของ span วันแรก
+    first_sma = series.iloc[:span].mean()
+    ema_val = first_sma
+    
+    for i in range(span, len(series)):
+        ema_val = series.iloc[i] * alpha + ema_val * (1 - alpha)
+    
+    # ถ้ามีข้อมูลพอดี span วัน ใช้วิธีให้น้ำหนักแบบ exponential ตรงๆ
+    if len(prices_list) == span:
+        # ให้น้ำหนักวันล่าสุดมากกว่า
+        weights = [(1 - alpha) ** i for i in range(span)]
+        weights.reverse()  # วันล่าสุดหนักสุด
+        total_weight = sum(weights)
+        weighted_avg = sum(p * w for p, w in zip(prices_list, weights)) / total_weight
+        return weighted_avg
+    
+    return float(ema_val)
