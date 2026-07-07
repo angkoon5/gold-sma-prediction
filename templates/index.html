@@ -168,3 +168,144 @@
     </div>
     <footer class="text-center py-3 mt-4"><p class="text-muted small mb-0">Gold SMA & EMA Prediction | Python Flask + Chart.js + Bootstrap 5</p></footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let smaChart = null;
+
+        async function fetchOnline() {
+            document.getElementById('onlineLoading').classList.add('show');
+            document.getElementById('onlineResult').classList.remove('show');
+            try {
+                const response = await fetch('/online');
+                const data = await response.json();
+                document.getElementById('onlineLoading').classList.remove('show');
+                if (data.error) {
+                    document.getElementById('onlineResult').innerHTML = '<div class="info-section" style="border-color:#dc3545;background:#fff5f5;"><p style="color:#dc3545;margin:0;"><i class="fas fa-exclamation-triangle me-2"></i>' + data.error + '</p></div>';
+                    document.getElementById('onlineResult').classList.add('show');
+                    return;
+                }
+                let html = '';
+                html += '<div class="row g-3 mt-2">';
+                html += '<div class="col-md-4"><div class="live-price-box"><div class="label">ราคาทองล่าสุด (บาท/บาททองคำ)</div><div class="price-big">' + data.latest.price_thb.toLocaleString() + '</div><div class="label">วันที่ ' + data.latest.date + '</div></div></div>';
+                html += '<div class="col-md-4"><div class="live-price-box" style="background:linear-gradient(135deg,#f0f4ff,#e6edff);border-color:#0d6efd;"><div class="label">Gold Spot (USD/oz)</div><div class="price-big" style="color:#0d47a1;">$' + data.latest.price_usd.toLocaleString() + '</div><div class="label">USD/THB: ' + data.usd_thb.toFixed(2) + '</div></div></div>';
+                html += '<div class="col-md-4"><div class="live-price-box" style="background:linear-gradient(135deg,#fff8e6,#fff3cd);border-color:#f5c518;"><div class="label">ข้อมูลที่วิเคราะห์</div><div class="price-big" style="color:#b8860b;">' + data.data_count + ' วัน</div><div class="label">จาก Yahoo Finance</div></div></div>';
+                html += '</div>';
+                html += '<div class="mt-4"><span class="section-tab"><i class="fas fa-magic me-2"></i>ทำนายราคาวันถัดไป</span></div>';
+                html += '<div class="row g-3">';
+                ['sma3','sma5','sma10','ema3','ema5','ema10'].forEach(function(key) {
+                    if (data.prediction_tomorrow[key] !== undefined) {
+                        var label = key.toUpperCase();
+                        var isEma = key.startsWith('ema');
+                        var style = isEma ? 'border-color:#9b59b6;background:linear-gradient(135deg,#faf0ff,#f3e5f5);' : '';
+                        var nameStyle = isEma ? 'color:#9b59b6;' : '';
+                        html += '<div class="col-md-4"><div class="predict-box" style="' + style + '"><div class="model-name" style="' + nameStyle + '">' + label + '</div><div class="price-value">' + data.prediction_tomorrow[key].toLocaleString() + '</div><div class="unit">บาท</div></div></div>';
+                    }
+                });
+                html += '</div>';
+                html += '<div class="mt-4"><span class="section-tab"><i class="fas fa-balance-scale me-2"></i>เปรียบเทียบ RMSE</span></div>';
+                html += '<table class="result-table"><thead><tr><th>แบบจำลอง</th><th>RMSE</th><th>สถานะ</th></tr></thead><tbody>';
+                [{n:'SMA3',r:data.rmse_sma3},{n:'SMA5',r:data.rmse_sma5},{n:'SMA10',r:data.rmse_sma10},{n:'EMA3',r:data.rmse_ema3},{n:'EMA5',r:data.rmse_ema5},{n:'EMA10',r:data.rmse_ema10}].forEach(function(m) {
+                    var best = m.n === data.best_model;
+                    html += '<tr><td><strong>' + m.n + '</strong></td><td>' + (m.r ? m.r.toLocaleString() : '-') + '</td>';
+                    html += '<td>' + (best ? '<span class="best-tag"><i class="fas fa-check me-1"></i>แม่นยำที่สุด</span>' : '-') + '</td></tr>';
+                });
+                html += '</tbody></table>';
+                html += '<div class="info-section mt-3"><p class="mb-0"><i class="fas fa-star me-2" style="color:var(--gold-main);"></i><strong>สรุป:</strong> จากข้อมูลจริง ' + data.data_count + ' วัน แบบจำลอง <strong style="color:#28a745;">' + data.best_model + '</strong> มี RMSE ต่ำที่สุด (' + data.best_rmse + ') จึงเหมาะสมที่สุด</p></div>';
+                document.getElementById('onlineResult').innerHTML = html;
+                document.getElementById('onlineResult').classList.add('show');
+                showChart(data);
+            } catch (err) {
+                document.getElementById('onlineLoading').classList.remove('show');
+                alert('เกิดข้อผิดพลาด: ' + err.message);
+            }
+        }
+
+        async function uploadFile() {
+            var fileInput = document.getElementById('fileInput');
+            if (!fileInput.files[0]) { alert('กรุณาเลือกไฟล์ก่อน'); return; }
+            var formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            document.getElementById('uploadLoading').classList.add('show');
+            document.getElementById('analysisResult').classList.remove('show');
+            try {
+                var response = await fetch('/upload', { method: 'POST', body: formData });
+                var data = await response.json();
+                document.getElementById('uploadLoading').classList.remove('show');
+                if (data.error) {
+                    document.getElementById('analysisResult').innerHTML = '<div class="info-section" style="border-color:#dc3545;background:#fff5f5;"><p style="color:#dc3545;margin:0;">' + data.error + '</p></div>';
+                    document.getElementById('analysisResult').classList.add('show');
+                    return;
+                }
+                var html = '<div class="mt-2"><span class="section-tab"><i class="fas fa-check-circle me-2"></i>ผลวิเคราะห์ (' + data.data_count + ' รายการ)</span></div>';
+                html += '<table class="result-table"><thead><tr><th>แบบจำลอง</th><th>RMSE</th><th>สถานะ</th></tr></thead><tbody>';
+                [{n:'SMA3',r:data.rmse_sma3},{n:'SMA5',r:data.rmse_sma5},{n:'SMA10',r:data.rmse_sma10},{n:'EMA3',r:data.rmse_ema3},{n:'EMA5',r:data.rmse_ema5},{n:'EMA10',r:data.rmse_ema10}].forEach(function(m) {
+                    var best = m.n === data.best_model;
+                    html += '<tr><td><strong>' + m.n + '</strong></td><td>' + (m.r || '-') + '</td>';
+                    html += '<td>' + (best ? '<span class="best-tag"><i class="fas fa-check me-1"></i>แม่นยำที่สุด</span>' : '-') + '</td></tr>';
+                });
+                html += '</tbody></table>';
+                html += '<div class="info-section mt-3"><p class="mb-0"><i class="fas fa-star me-2" style="color:var(--gold-main);"></i><strong>' + data.best_model + '</strong> (RMSE=' + data.best_rmse + ') เหมาะสมที่สุด</p></div>';
+                document.getElementById('analysisResult').innerHTML = html;
+                document.getElementById('analysisResult').classList.add('show');
+                showChart(data);
+            } catch (err) {
+                document.getElementById('uploadLoading').classList.remove('show');
+                alert('Error: ' + err.message);
+            }
+        }
+
+        function showChart(data) {
+            document.getElementById('chartSection').style.display = 'block';
+            var ctx = document.getElementById('smaChart').getContext('2d');
+            if (smaChart) smaChart.destroy();
+            var labels = data.dates || data.prices.map(function(_, i) { return 'Day ' + (i+1); });
+            smaChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'ราคาจริง', data: data.prices, borderColor: '#2c2c2c', backgroundColor: 'rgba(44,44,44,0.05)', borderWidth: 2.5, pointRadius: 2, tension: 0.3, fill: true },
+                        { label: 'SMA3', data: data.sma3, borderColor: '#dc3545', borderWidth: 2, pointRadius: 0, borderDash: [6,3], tension: 0.3 },
+                        { label: 'SMA5', data: data.sma5, borderColor: '#0d6efd', borderWidth: 2, pointRadius: 0, borderDash: [6,3], tension: 0.3 },
+                        { label: 'SMA10', data: data.sma10, borderColor: '#28a745', borderWidth: 2, pointRadius: 0, borderDash: [6,3], tension: 0.3 },
+                        { label: 'EMA3', data: data.ema3, borderColor: '#9b59b6', borderWidth: 2, pointRadius: 0, borderDash: [3,3], tension: 0.3 },
+                        { label: 'EMA5', data: data.ema5, borderColor: '#e67e22', borderWidth: 2, pointRadius: 0, borderDash: [3,3], tension: 0.3 },
+                        { label: 'EMA10', data: data.ema10, borderColor: '#1abc9c', borderWidth: 2, pointRadius: 0, borderDash: [3,3], tension: 0.3 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { labels: { font: { family: 'Noto Sans Thai' } } }, title: { display: true, text: 'เปรียบเทียบราคาจริง vs SMA & EMA', font: { size: 15, family: 'Noto Sans Thai', weight: '600' }, color: '#2c2c2c' } },
+                    scales: { x: { ticks: { maxRotation: 45, font: { size: 10 } }, grid: { color: '#f0ece0' } }, y: { ticks: { font: { size: 11 } }, grid: { color: '#f0ece0' } } }
+                }
+            });
+        }
+
+        async function predictPrice() {
+            var inputs = document.querySelectorAll('.price-input');
+            var prices = [];
+            inputs.forEach(function(input) { if (input.value) prices.push(parseFloat(input.value)); });
+            prices.reverse();
+            if (prices.length < 3) { alert('กรุณากรอกราคาอย่างน้อย 3 วัน'); return; }
+            try {
+                var response = await fetch('/predict', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prices: prices }) });
+                var data = await response.json();
+                if (data.error) { alert(data.error); return; }
+                var html = '<div class="mt-3"><span class="section-tab"><i class="fas fa-magic me-2"></i>ผลทำนายราคาพรุ่งนี้</span></div><div class="row g-3">';
+                ['sma3','sma5','sma10','ema3','ema5','ema10'].forEach(function(key) {
+                    if (data.predictions[key] !== undefined) {
+                        var label = key.toUpperCase();
+                        var isEma = key.startsWith('ema');
+                        var style = isEma ? 'border-color:#9b59b6;background:linear-gradient(135deg,#faf0ff,#f3e5f5);' : '';
+                        var nameStyle = isEma ? 'color:#9b59b6;' : '';
+                        html += '<div class="col-md-4"><div class="predict-box" style="' + style + '"><div class="model-name" style="' + nameStyle + '">' + label + '</div><div class="price-value">' + data.predictions[key].toLocaleString() + '</div><div class="unit">บาท</div></div></div>';
+                    }
+                });
+                html += '</div>';
+                document.getElementById('predictResult').innerHTML = html;
+                document.getElementById('predictResult').classList.add('show');
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+    </script>
+</body>
+</html>
