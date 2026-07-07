@@ -186,7 +186,7 @@
                 }
                 let html = '';
                 html += '<div class="row g-3 mt-2">';
-                html += '<div class="col-md-4"><div class="live-price-box"><div class="label">ราคาทองล่าสุด (บาท/บาททองคำ)</div><div class="price-big">' + data.latest.price_thb.toLocaleString() + '</div><div class="label">วันที่ ' + data.latest.date + '</div></div></div>';
+                html += '<div class="col-md-4"><div class="live-price-box"><div class="label">ราคาทองคำปัจจุบัน</div><div class="price-big">' + data.latest.price_thb.toLocaleString() + '</div><div class="label">วันที่ ' + data.latest.date + '</div></div></div>';
                 html += '<div class="col-md-4"><div class="live-price-box" style="background:linear-gradient(135deg,#f0f4ff,#e6edff);border-color:#0d6efd;"><div class="label">Gold Spot (USD/oz)</div><div class="price-big" style="color:#0d47a1;">$' + data.latest.price_usd.toLocaleString() + '</div><div class="label">USD/THB: ' + data.usd_thb.toFixed(2) + '</div></div></div>';
                 html += '<div class="col-md-4"><div class="live-price-box" style="background:linear-gradient(135deg,#fff8e6,#fff3cd);border-color:#f5c518;"><div class="label">ข้อมูลที่วิเคราะห์</div><div class="price-big" style="color:#b8860b;">' + data.data_count + ' วัน</div><div class="label">จาก Yahoo Finance</div></div></div>';
                 html += '</div>';
@@ -196,6 +196,7 @@
                     if (data.prediction_tomorrow[key] !== undefined) {
                         var label = key.toUpperCase();
                         var isEma = key.startsWith('ema');
+                        var emaNote = (key === 'ema3' && data.ema3_source) ? (data.ema3_source === 'database' ? ' (จากฐานข้อมูล)' : ' (คำนวณเอง)') : '';
                         var style = isEma ? 'border-color:#9b59b6;background:linear-gradient(135deg,#faf0ff,#f3e5f5);' : '';
                         var nameStyle = isEma ? 'color:#9b59b6;' : '';
                         html += '<div class="col-md-4"><div class="predict-box" style="' + style + '"><div class="model-name" style="' + nameStyle + '">' + label + '</div><div class="price-value">' + data.prediction_tomorrow[key].toLocaleString() + '</div><div class="unit">บาท</div></div></div>';
