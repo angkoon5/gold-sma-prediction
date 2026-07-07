@@ -101,16 +101,16 @@
                     <div class="card-content">
                         <p class="text-muted mb-3" style="font-size:0.88em;">กรอกจากเมื่อวานย้อนไป (อย่างน้อย 3 วัน)</p>
                         <div class="row g-2">
-                            <div class="col-6"><div class="form-group"><label>วันที่ 1 (เมื่อวาน)</label><input type="number" class="form-input price-input" placeholder="เช่น 65350"></div></div>
-                            <div class="col-6"><div class="form-group"><label>วันที่ 2 (2 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
-                            <div class="col-6"><div class="form-group"><label>วันที่ 3 (3 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
-                            <div class="col-6"><div class="form-group"><label>วันที่ 4 (4 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
-                            <div class="col-6"><div class="form-group"><label>วันที่ 5 (5 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
-                            <div class="col-6"><div class="form-group"><label>วันที่ 6 (6 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
-                            <div class="col-6"><div class="form-group"><label>วันที่ 7 (7 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
-                            <div class="col-6"><div class="form-group"><label>วันที่ 8 (8 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
-                            <div class="col-6"><div class="form-group"><label>วันที่ 9 (9 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
-                            <div class="col-6"><div class="form-group"><label>วันที่ 10 (10 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
+                            <div class="col-6"><div class="form-group"><label>วันที่ 1 (10 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="เช่น 65350"></div></div>
+                            <div class="col-6"><div class="form-group"><label>วันที่ 2 (9 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
+                            <div class="col-6"><div class="form-group"><label>วันที่ 3 (8 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
+                            <div class="col-6"><div class="form-group"><label>วันที่ 4 (7 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
+                            <div class="col-6"><div class="form-group"><label>วันที่ 5 (6 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
+                            <div class="col-6"><div class="form-group"><label>วันที่ 6 (5 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
+                            <div class="col-6"><div class="form-group"><label>วันที่ 7 (4 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
+                            <div class="col-6"><div class="form-group"><label>วันที่ 8 (3 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
+                            <div class="col-6"><div class="form-group"><label>วันที่ 9 (2 วันก่อน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
+                            <div class="col-6"><div class="form-group"><label>วันที่ 10 (เมื่อวาน)</label><input type="number" class="form-input price-input" placeholder="65350"></div></div>
                         </div>
                         <button class="btn-gold-main" onclick="predictPrice()"><i class="fas fa-magic me-2"></i>ทำนายราคาพรุ่งนี้</button>
                         <div class="result-area" id="predictResult"></div>
@@ -285,7 +285,7 @@
             var inputs = document.querySelectorAll('.price-input');
             var prices = [];
             inputs.forEach(function(input) { if (input.value) prices.push(parseFloat(input.value)); });
-            prices.reverse();
+            
             if (prices.length < 3) { alert('กรุณากรอกราคาอย่างน้อย 3 วัน'); return; }
             try {
                 var response = await fetch('/predict', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prices: prices }) });
