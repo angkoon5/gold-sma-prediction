@@ -276,19 +276,17 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2,
                     interaction: { mode: 'index', intersect: false },
                     plugins: {
-                        legend: {
-                            position: window.innerWidth < 768 ? 'bottom' : 'top',
-                            labels: { font: { family: 'Noto Sans Thai', size: window.innerWidth < 768 ? 10 : 12 }, boxWidth: window.innerWidth < 768 ? 12 : 40, padding: window.innerWidth < 768 ? 8 : 10 }
-                        },
-                        title: { display: true, text: 'เปรียบเทียบราคาจริง vs SMA & EMA', font: { size: window.innerWidth < 768 ? 13 : 15, family: 'Noto Sans Thai', weight: '600' }, color: '#2c2c2c' },
+                        legend: { position: 'bottom', labels: { font: { family: 'Noto Sans Thai' }, boxWidth: 20, padding: 10 } },
+                        title: { display: true, text: 'เปรียบเทียบราคาจริง vs SMA & EMA', font: { family: 'Noto Sans Thai', weight: '600' }, color: '#2c2c2c' },
                         tooltip: { enabled: true, mode: 'index' }
                     },
                     scales: {
-                        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: window.innerWidth < 768 ? 6 : 15, font: { size: window.innerWidth < 768 ? 8 : 10 } }, grid: { color: '#f0ece0' } },
-                        y: { ticks: { font: { size: window.innerWidth < 768 ? 9 : 11 }, callback: function(v) { return (v/1000).toFixed(0) + 'k'; } }, grid: { color: '#f0ece0' } }
+                        x: { ticks: { maxRotation: 45, autoSkip: true }, grid: { color: '#f0ece0' } },
+                        y: { ticks: { callback: function(v) { return v.toLocaleString(); } }, grid: { color: '#f0ece0' } }
                     }
                 }
             });
