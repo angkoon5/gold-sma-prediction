@@ -2,7 +2,8 @@
 import os
 import numpy as np
 import pandas as pd
-from sma_analysis import analyze_gold_price, predict_next_price, load_data, calculate_sma, calculate_rmse
+from sma_analysis import (analyze_gold_price, predict_next_price, predict_next_price_ema,
+                           load_data, calculate_sma, calculate_ema, calculate_rmse)
 from gold_fetcher import fetch_all_online_data, get_online_prices_for_sma
 
 app = Flask(__name__)
@@ -32,6 +33,7 @@ def upload_file():
             'rmse3': round(results['rmse3'], 4) if results['rmse3'] else None,
             'rmse5': round(results['rmse5'], 4) if results['rmse5'] else None,
             'rmse10': round(results['rmse10'], 4) if results['rmse10'] else None,
+            'rmse_ema3': round(results['rmse_ema3'], 4) if results['rmse_ema3'] else None,
             'best_model': results['best_model'][0],
             'best_rmse': round(results['best_model'][1], 4),
             'data_count': len(results['prices']),
@@ -39,6 +41,7 @@ def upload_file():
             'sma3': [x if not np.isnan(x) else None for x in results['sma3'].tolist()[-30:]],
             'sma5': [x if not np.isnan(x) else None for x in results['sma5'].tolist()[-30:]],
             'sma10': [x if not np.isnan(x) else None for x in results['sma10'].tolist()[-30:]],
+            'ema3': [x if not np.isnan(x) else None for x in results['ema3'].tolist()[-30:]],
         }
         return jsonify(response)
     except Exception as e:
@@ -57,6 +60,7 @@ def predict():
     results = {}
     if len(prices) >= 3:
         results['sma3'] = round(predict_next_price(prices, 3), 2)
+        results['ema3'] = round(predict_next_price_ema(prices, 3), 2)
     if len(prices) >= 5:
         results['sma5'] = round(predict_next_price(prices, 5), 2)
     if len(prices) >= 10:
@@ -69,7 +73,7 @@ def predict():
 
 @app.route('/online', methods=['GET'])
 def online_prices():
-    """ดึงราคาทองออนไลน์จากเว็บชั้นนำ พร้อมคำนวณ SMA และ RMSE"""
+    """ดึงราคาทองออนไลน์จากเว็บชั้นนำ พร้อมคำนวณ SMA, EMA และ RMSE"""
     try:
         online_data = fetch_all_online_data()
         
@@ -82,29 +86,32 @@ def online_prices():
         if len(prices) < 10:
             return jsonify({'error': f'ข้อมูลไม่เพียงพอ (ได้ {len(prices)} วัน, ต้องการ 10+)'}), 400
         
-        # คำนวณ SMA
         prices_series = pd.Series(prices)
         sma3 = prices_series.rolling(window=3).mean()
         sma5 = prices_series.rolling(window=5).mean()
         sma10 = prices_series.rolling(window=10).mean()
+        ema3 = prices_series.ewm(span=3, adjust=False).mean()
         
-        # คำนวณ RMSE (เปรียบเทียบ SMA วันก่อนหน้ากับราคาจริงวันนี้)
+        # RMSE
         pred_sma3 = sma3.shift(1)
         pred_sma5 = sma5.shift(1)
         pred_sma10 = sma10.shift(1)
+        pred_ema3 = ema3.shift(1)
         
         rmse3 = calculate_rmse(prices_series, pred_sma3)
         rmse5 = calculate_rmse(prices_series, pred_sma5)
         rmse10 = calculate_rmse(prices_series, pred_sma10)
+        rmse_ema3 = calculate_rmse(prices_series, pred_ema3)
         
-        best = min([('SMA3', rmse3), ('SMA5', rmse5), ('SMA10', rmse10)],
-                   key=lambda x: x[1] if x[1] else float('inf'))
+        all_models = [('SMA3', rmse3), ('SMA5', rmse5), ('SMA10', rmse10), ('EMA3', rmse_ema3)]
+        best = min(all_models, key=lambda x: x[1] if x[1] else float('inf'))
         
-        # ทำนายราคาวันถัดไป
+        # ทำนายวันถัดไป
         pred_tomorrow = {
             'sma3': round(float(np.mean(prices[-3:])), 2),
             'sma5': round(float(np.mean(prices[-5:])), 2),
             'sma10': round(float(np.mean(prices[-10:])), 2),
+            'ema3': round(float(ema3.iloc[-1]), 2),
         }
         
         response = {
@@ -119,9 +126,11 @@ def online_prices():
             'sma3': [round(x, 2) if not np.isnan(x) else None for x in sma3.tolist()[-30:]],
             'sma5': [round(x, 2) if not np.isnan(x) else None for x in sma5.tolist()[-30:]],
             'sma10': [round(x, 2) if not np.isnan(x) else None for x in sma10.tolist()[-30:]],
+            'ema3': [round(x, 2) if not np.isnan(x) else None for x in ema3.tolist()[-30:]],
             'rmse3': round(rmse3, 4) if rmse3 else None,
             'rmse5': round(rmse5, 4) if rmse5 else None,
             'rmse10': round(rmse10, 4) if rmse10 else None,
+            'rmse_ema3': round(rmse_ema3, 4) if rmse_ema3 else None,
             'best_model': best[0],
             'best_rmse': round(best[1], 4) if best[1] else None,
             'prediction_tomorrow': pred_tomorrow
@@ -134,8 +143,7 @@ def online_prices():
 if __name__ == '__main__':
     os.makedirs('data', exist_ok=True)
     print("=" * 60)
-    print("  ระบบทำนายราคาทองคำด้วย SMA")
-    print("  + ดึงข้อมูลออนไลน์จาก Yahoo Finance & GoldPriceZ")
+    print("  ระบบทำนายราคาทองคำด้วย SMA + EMA")
     print("  เปิดเบราว์เซอร์ไปที่: http://127.0.0.1:5000")
     print("=" * 60)
     app.run(debug=True, port=5000)

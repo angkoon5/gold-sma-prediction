@@ -281,6 +281,7 @@
                                 <li><strong>SMA3</strong> - ใช้ราคา 3 วันก่อนหน้า</li>
                                 <li><strong>SMA5</strong> - ใช้ราคา 5 วันก่อนหน้า</li>
                                 <li><strong>SMA10</strong> - ใช้ราคา 10 วันก่อนหน้า</li>
+                                <li><strong>EMA3</strong> - ค่าเฉลี่ยถ่วงน้ำหนัก 3 วัน (ให้น้ำหนักวันล่าสุดมากกว่า)</li>
                             </ul>
                             <p class="mb-0"><strong>RMSE</strong> = ค่าความคลาดเคลื่อน ยิ่งต่ำ = ยิ่งแม่นยำ</p>
                         </div>
@@ -345,12 +346,13 @@
                 html += '<div class="col-md-4"><div class="predict-box"><div class="model-name">SMA3 (3 วัน)</div><div class="price-value">' + data.prediction_tomorrow.sma3.toLocaleString() + '</div><div class="unit">บาท/บาททองคำ</div></div></div>';
                 html += '<div class="col-md-4"><div class="predict-box"><div class="model-name">SMA5 (5 วัน)</div><div class="price-value">' + data.prediction_tomorrow.sma5.toLocaleString() + '</div><div class="unit">บาท/บาททองคำ</div></div></div>';
                 html += '<div class="col-md-4"><div class="predict-box"><div class="model-name">SMA10 (10 วัน)</div><div class="price-value">' + data.prediction_tomorrow.sma10.toLocaleString() + '</div><div class="unit">บาท/บาททองคำ</div></div></div>';
+                html += '<div class="col-md-4"><div class="predict-box" style="border-color:#9b59b6;background:linear-gradient(135deg,#faf0ff,#f3e5f5);"><div class="model-name" style="color:#9b59b6;">EMA3 (3 วัน ถ่วงน้ำหนัก)</div><div class="price-value">' + data.prediction_tomorrow.ema3.toLocaleString() + '</div><div class="unit">บาท/บาททองคำ</div></div></div>';
                 html += '</div>';
 
                 // RMSE table
                 html += '<div class="mt-4"><span class="section-tab"><i class="fas fa-balance-scale me-2"></i>เปรียบเทียบ RMSE</span></div>';
                 html += '<table class="result-table"><thead><tr><th>แบบจำลอง</th><th>RMSE (ความคลาดเคลื่อน)</th><th>สถานะ</th></tr></thead><tbody>';
-                [{n:'SMA3',r:data.rmse3},{n:'SMA5',r:data.rmse5},{n:'SMA10',r:data.rmse10}].forEach(m => {
+                [{n:'SMA3',r:data.rmse3},{n:'SMA5',r:data.rmse5},{n:'SMA10',r:data.rmse10},{n:'EMA3',r:data.rmse_ema3}].forEach(m => {
                     const best = m.n === data.best_model;
                     html += '<tr><td><strong>' + m.n + '</strong></td><td>' + (m.r ? m.r.toLocaleString() : '-') + '</td>';
                     html += '<td>' + (best ? '<span class="best-tag"><i class="fas fa-check me-1"></i>แม่นยำที่สุด</span>' : '-') + '</td></tr>';
@@ -388,7 +390,7 @@
                 }
                 let html = '<div class="mt-2"><span class="section-tab"><i class="fas fa-check-circle me-2"></i>ผลวิเคราะห์ (' + data.data_count + ' รายการ)</span></div>';
                 html += '<table class="result-table"><thead><tr><th>แบบจำลอง</th><th>RMSE</th><th>สถานะ</th></tr></thead><tbody>';
-                [{n:'SMA3',r:data.rmse3},{n:'SMA5',r:data.rmse5},{n:'SMA10',r:data.rmse10}].forEach(m => {
+                [{n:'SMA3',r:data.rmse3},{n:'SMA5',r:data.rmse5},{n:'SMA10',r:data.rmse10},{n:'EMA3',r:data.rmse_ema3}].forEach(m => {
                     const best = m.n === data.best_model;
                     html += '<tr><td><strong>' + m.n + '</strong></td><td>' + (m.r || '-') + '</td>';
                     html += '<td>' + (best ? '<span class="best-tag"><i class="fas fa-check me-1"></i>แม่นยำที่สุด</span>' : '-') + '</td></tr>';
@@ -417,7 +419,8 @@
                         { label: 'ราคาจริง', data: data.prices, borderColor: '#2c2c2c', backgroundColor: 'rgba(44,44,44,0.05)', borderWidth: 2.5, pointRadius: 2, tension: 0.3, fill: true },
                         { label: 'SMA3', data: data.sma3, borderColor: '#dc3545', borderWidth: 2, pointRadius: 0, borderDash: [6,3], tension: 0.3 },
                         { label: 'SMA5', data: data.sma5, borderColor: '#0d6efd', borderWidth: 2, pointRadius: 0, borderDash: [6,3], tension: 0.3 },
-                        { label: 'SMA10', data: data.sma10, borderColor: '#28a745', borderWidth: 2, pointRadius: 0, borderDash: [6,3], tension: 0.3 }
+                        { label: 'SMA10', data: data.sma10, borderColor: '#28a745', borderWidth: 2, pointRadius: 0, borderDash: [6,3], tension: 0.3 },
+                        { label: 'EMA3', data: data.ema3, borderColor: '#9b59b6', borderWidth: 2, pointRadius: 0, borderDash: [3,3], tension: 0.3 }
                     ]
                 },
                 options: {
@@ -431,11 +434,11 @@
 
         function showComparison(data) {
             document.getElementById('comparisonSection').style.display = 'block';
-            let html = '<table class="result-table"><thead><tr><th>เกณฑ์</th><th>SMA3</th><th>SMA5</th><th>SMA10</th></tr></thead><tbody>';
-            html += '<tr><td>จำนวนวันย้อนหลัง</td><td>3 วัน</td><td>5 วัน</td><td>10 วัน</td></tr>';
-            html += '<tr><td>RMSE</td><td>' + (data.rmse3||'-') + '</td><td>' + (data.rmse5||'-') + '</td><td>' + (data.rmse10||'-') + '</td></tr>';
+            let html = '<table class="result-table"><thead><tr><th>เกณฑ์</th><th>SMA3</th><th>SMA5</th><th>SMA10</th><th>EMA3</th></tr></thead><tbody>';
+            html += '<tr><td>จำนวนวันย้อนหลัง</td><td>3 วัน</td><td>5 วัน</td><td>10 วัน</td><td>3 วัน (ถ่วงน้ำหนัก)</td></tr>';
+            html += '<tr><td>RMSE</td><td>' + (data.rmse3||'-') + '</td><td>' + (data.rmse5||'-') + '</td><td>' + (data.rmse10||'-') + '</td><td>' + (data.rmse_ema3||'-') + '</td></tr>';
             html += '<tr><td>ผลสรุป</td>';
-            ['SMA3','SMA5','SMA10'].forEach(n => { html += '<td>' + (n===data.best_model ? '<span class="best-tag"><i class="fas fa-crown me-1"></i>ดีที่สุด</span>' : '-') + '</td>'; });
+            ['SMA3','SMA5','SMA10','EMA3'].forEach(n => { html += '<td>' + (n===data.best_model ? '<span class="best-tag"><i class="fas fa-crown me-1"></i>ดีที่สุด</span>' : '-') + '</td>'; });
             html += '</tr></tbody></table>';
             html += '<div class="info-section mt-3"><h6><i class="fas fa-lightbulb me-2"></i>การตีความ</h6><ul style="padding-left:20px;margin-bottom:0;">';
             html += '<li>RMSE ยิ่งต่ำ = ทำนายแม่นยำมากขึ้น</li>';
@@ -457,6 +460,7 @@
                 if (data.predictions.sma3 !== undefined) html += '<div class="col-md-4"><div class="predict-box"><div class="model-name">SMA3</div><div class="price-value">' + data.predictions.sma3.toLocaleString() + '</div><div class="unit">บาท</div></div></div>';
                 if (data.predictions.sma5 !== undefined) html += '<div class="col-md-4"><div class="predict-box"><div class="model-name">SMA5</div><div class="price-value">' + data.predictions.sma5.toLocaleString() + '</div><div class="unit">บาท</div></div></div>';
                 if (data.predictions.sma10 !== undefined) html += '<div class="col-md-4"><div class="predict-box"><div class="model-name">SMA10</div><div class="price-value">' + data.predictions.sma10.toLocaleString() + '</div><div class="unit">บาท</div></div></div>';
+                if (data.predictions.ema3 !== undefined) html += '<div class="col-md-4"><div class="predict-box" style="border-color:#9b59b6;background:linear-gradient(135deg,#faf0ff,#f3e5f5);"><div class="model-name" style="color:#9b59b6;">EMA3</div><div class="price-value">' + data.predictions.ema3.toLocaleString() + '</div><div class="unit">บาท</div></div></div>';
                 html += '</div>';
                 document.getElementById('predictResult').innerHTML = html;
                 document.getElementById('predictResult').classList.add('show');
