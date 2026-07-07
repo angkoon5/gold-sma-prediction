@@ -277,16 +277,16 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    aspectRatio: 2,
+                    aspectRatio: window.innerWidth < 600 ? 1 : 2,
                     interaction: { mode: 'index', intersect: false },
                     plugins: {
-                        legend: { position: 'bottom', labels: { font: { family: 'Noto Sans Thai' }, boxWidth: 20, padding: 10 } },
-                        title: { display: true, text: 'เปรียบเทียบราคาจริง vs SMA & EMA', font: { family: 'Noto Sans Thai', weight: '600' }, color: '#2c2c2c' },
+                        legend: { position: 'bottom', labels: { font: { family: 'Noto Sans Thai', size: 11 }, boxWidth: 15, padding: 8 } },
+                        title: { display: true, text: 'เปรียบเทียบราคาจริง vs SMA & EMA', font: { size: 14, family: 'Noto Sans Thai', weight: '600' }, color: '#2c2c2c', padding: { bottom: 10 } },
                         tooltip: { enabled: true, mode: 'index' }
                     },
                     scales: {
-                        x: { ticks: { maxRotation: 45, autoSkip: true }, grid: { color: '#f0ece0' } },
-                        y: { ticks: { callback: function(v) { return v.toLocaleString(); } }, grid: { color: '#f0ece0' } }
+                        x: { ticks: { maxRotation: 60, autoSkip: true, maxTicksLimit: 8, font: { size: 9 } }, grid: { display: false } },
+                        y: { ticks: { callback: function(v) { return v.toLocaleString(); }, font: { size: 10 } }, grid: { color: '#f0ece0' } }
                     }
                 }
             });
