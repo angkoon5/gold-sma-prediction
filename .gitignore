@@ -1,7 +1,8 @@
-﻿__pycache__/
+__pycache__/
 *.pyc
 data/*.xlsx
 data/*.csv
 .env
 venv/
 create_sample_data.py
+PROJECT_SUMMARY.md
