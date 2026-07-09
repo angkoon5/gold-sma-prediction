@@ -31,7 +31,7 @@ def fetch_yahoo_gold(days=30):
         
         data = resp.json()
         result = data['chart']['result'][0]
-        timestamps = result['timestamp']
+        timestamps = result['timestamp'] 
         closes = result['indicators']['quote'][0]['close']
         
         prices = []
